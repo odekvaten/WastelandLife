@@ -5,7 +5,7 @@ from aiogram import Router, F, types
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from bot import bot, adminka_process, start_adminka
+from bot import bot
 from db.db_requests import Db
 from aiogram.utils.media_group import MediaGroupBuilder
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -29,7 +29,6 @@ class TransferState(StatesGroup):
 async def go_to_location(message, state: FSMContext):
     #loader = await message.answer('Загрузка...')
     hero = await Db.get_user_with_location(telegram_id=message.from_user.id)
-    
     
     if hero.get('location').get('is_city'):
         npc_ids = hero.get('location').get('npc')
@@ -81,6 +80,7 @@ async def go_to_location(message, state: FSMContext):
             [KeyboardButton(text='⚙️Настройки')]
         ]
         keyboard = ReplyKeyboardMarkup(keyboard=kb, resize_keyboard = True)
+
     await message.answer_photo(FSInputFile(hero.get('location').get('image')),
                                caption=f'<b>{hero.get("location").get("name")}</b>\n\n'
                                        f'{hero.get("location").get("about")}\n\n'

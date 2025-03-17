@@ -17,6 +17,7 @@ async def run():
     await check_connection()
     scheduler.add_job(Db.update_hero_hp, "interval", seconds=1)
     scheduler.start()
+    print("Bot started")
     await dp.start_polling(bot)
 
 

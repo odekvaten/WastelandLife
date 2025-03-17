@@ -25,7 +25,13 @@ class Db:
             return True
         else:
             return False
-            
+         
+    @staticmethod
+    async def get_info():
+        locations = await Collection.location.find().to_list(None)
+        for i in locations:
+            print(i)
+         
     @staticmethod
     async def new_profile(telegram_id, telegram_name, telegram_lang, nickname, telegram_last_online, telegram_referral_id, telegram_referrals, telegram_is_active, premium_coins, telegram_source_from, telegram_created_at, is_banned, ban_date, action_count, current_hero, is_premium, premium_date, max_count_heroes):
         user = await Collection.profile.insert_one({
