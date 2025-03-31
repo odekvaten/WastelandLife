@@ -105,7 +105,6 @@ async def handler_escape(message: Message, state: FSMContext):
     for equipment in hero['equipped'].keys():
         equipment_id = hero['equipped'][equipment]
         if equipment_id != None:
-            equipment_id = equipment_id["_id"]
             current_equipment = await Db.get_player_equipments(hero["_id"], equipment_id = equipment_id)
             if len(current_equipment) > 0:
                 current_equipment = current_equipment[0]
@@ -242,6 +241,7 @@ async def handler_fight_attack(message: Message, state: FSMContext):
             
             await Db.update_location(message.chat.id, nearest_locations[0]['name'])
             for equipment in hero['equipped'].keys():
+                equipment_id = hero['equipped'][equipment]
                 if equipment_id != None:
                     current_equipment = await Db.get_player_equipments(result['hero_1']['user_ref'], equipment_id = equipment_id)
                     if len(current_equipment) > 0:
@@ -266,7 +266,7 @@ async def handler_fight_attack(message: Message, state: FSMContext):
             msg = None
             text_drops = ""
 
-            if result['hero_1']["lvl"] - result['hero_2']["lvl"] <= 3:
+            if result['hero_1']["lvl"] - result['hero_2']["lvl"] <= 2:
                 if result['hero_2'].get('experience'):
                     experience = result['hero_2'].get('experience')
                     money = result['hero_2'].get('money')
