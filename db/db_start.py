@@ -10,7 +10,7 @@ db = client.wastelands
 
 class Collection:
     profile = db.profile
-    hero = db.heroes
+    heroes = db.heroes
     equipment = db.equipments
     location = db.locations
     fight = db.fights
@@ -24,6 +24,9 @@ class Collection:
     trades = db.trades
     effects = db.effects
     playerequipments = db.playerequipments
+    npc_sell_equipments = db.npc_sell_equipments
+    npc_sell_resources = db.npc_sell_resources
+    
 
 async def check_connection():
     try:

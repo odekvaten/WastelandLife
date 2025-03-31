@@ -12,7 +12,7 @@ import bson
 class Db:
     @staticmethod
     async def check_nickname(nickname):
-        is_nickname = await Collection.hero.find({'nickname': nickname}).to_list(None)
+        is_nickname = await Collection.heroes.find({'nickname': nickname}).to_list(None)
         if is_nickname:
             return True
         else:
@@ -94,7 +94,7 @@ class Db:
         if hp_free is None:
             hp_free = hp
             
-        hero = await Collection.hero.insert_one({
+        hero = await Collection.heroes.insert_one({
                 "profile_id" : profile_id,
                 "nickname" : nickname,
                 "gender": gender,
@@ -131,6 +131,8 @@ class Db:
     async def get_hero_equipped(_id):
         equipped = await Collection.equipments.find({"_id": bson.ObjectId(_id)}).to_list(None)
         return equipped[0]
+        
+    
     
     @staticmethod
     async def get_profile(telegram_id):
@@ -163,12 +165,12 @@ class Db:
             }
         ]
         
-        hero = await Collection.hero.aggregate(pipeline).to_list(None)
+        hero = await Collection.heroes.aggregate(pipeline).to_list(None)
 
         
         if 'location' not in hero[0].keys():
             await Db.update_location(telegram_id, '🏙 Контейнер')
-            hero = await Collection.hero.aggregate(pipeline).to_list(None)                  
+            hero = await Collection.heroes.aggregate(pipeline).to_list(None)                  
                                                             
         return hero[0]
 
@@ -204,13 +206,13 @@ class Db:
     async def get_hero_by_telegram_id(telegram_id):
         hero_id = await Db.get_profile(telegram_id)
         hero_id = hero_id["current_hero"]
-        hero = await Collection.hero.find({"_id": bson.ObjectId(hero_id)}).to_list(None)
+        hero = await Collection.heroes.find({"_id": bson.ObjectId(hero_id)}).to_list(None)
        
         return hero[0]
         
     @staticmethod
     async def get_hero(hero_id):
-        hero = await Collection.hero.find({"_id": bson.ObjectId(hero_id)}).to_list(None)
+        hero = await Collection.heroes.find({"_id": bson.ObjectId(hero_id)}).to_list(None)
        
         return hero[0]
         
@@ -220,7 +222,7 @@ class Db:
         hero_id = str(hero.get('_id'))
         location = await Db.get_location_by_name(location_name=location_name)
         location_id = str(location.get('_id'))
-        current_location = await Collection.hero.update_one({'_id': bson.ObjectId(hero_id)},
+        current_location = await Collection.heroes.update_one({'_id': bson.ObjectId(hero_id)},
                                                             {'$set': {'location_ref': bson.ObjectId(location_id)}})
         return True
 
@@ -249,7 +251,7 @@ class Db:
                 hero['resources'] = new_resources
                 hero['equipped'][resource_data.get('type')] = resource_data
                 print(hero)
-                isss = await Collection.hero.update_one({'telegram_id': hero_telegram_id}, {'$set': hero})
+                isss = await Collection.heroes.update_one({'telegram_id': hero_telegram_id}, {'$set': hero})
                 print(isss)
         else:
             pass
@@ -295,7 +297,7 @@ class Db:
                     mob = random.choice(mobs)
                 else:
                     mob = random.choice(all_mobs)
-                
+
                 bot_fight = {
                     'status': 'fight',
                     'type': 'bot',
@@ -335,7 +337,8 @@ class Db:
                         'hits' : 0,
                         'misses' : 0,
                         'image' : mob["image"],
-                        'drop' : mob['drop']
+                        'drop_equipments' : mob['drop_equipments'],
+                        'drop_resources' : mob['drop_resources']
                     },
                     'round_num': 1,
                     'meters': 7,
@@ -387,53 +390,50 @@ class Db:
         
         can_shoot = True
         
+        hero_1_user_ref = fight["hero_1"]["user_ref"]
+        
         
         if is_equipped_hero_1:
-            if is_equipped_hero_1.get('gun_1'):
-                if is_equipped_hero_1.get('gun_1').get('_id'):
-                    gun_1_id = await Db.get_player_equipments(fight.get('hero_1').get("user_ref"), equipment_id =  is_equipped_hero_1.get('gun_1').get('_id'))
-                    if gun_1_id:
-                        gun_1_id = gun_1_id[0]['equipment_id']
-                    
-                    gun_1 = await Db.get_hero_equipped(gun_1_id)
-                    gun_1.update(is_equipped_hero_1.get('gun_1'))
-                    weaponType = gun_1.get("type")
-                    weaponDamage = ceil(gun_1.get("weaponDamage"))
-                    patronDamage = ceil(gun_1.get("patronDamage"))
-                    criticalDamagePower = ceil(gun_1.get("criticalDamagePower"))
-                    criticalDamageProbability = ceil(gun_1.get("criticalDamageProbability"))
-                    distanceModifier = gun_1.get("distanceModifier")
-                    if type(distanceModifier) == list and weaponType == "🔫 огнестрельное":
-                        if fight['round_num'] < len(distanceModifier):
-                            distanceModifier = distanceModifier[fight['round_num']]
-                        else:
-                            distanceModifier = distanceModifier[len(distanceModifier) - 1]
+            if is_equipped_hero_1.get('gun_1') != None:
+                gun_equipment = await Db.get_player_equipments(hero_1_user_ref, equipment_id = is_equipped_hero_1.get('gun_1'))
+                if len(gun_equipment) > 0:
+                    gun_equipment = gun_equipment[0]
+
+                gun_1_id = gun_equipment['equipment_id']
+                gun_1 = gun_equipment["equipments"]
+                #gun_1.update(is_equipped_hero_1.get('gun_1'))
+                weaponType = gun_1.get("type")
+                weaponDamage = ceil(gun_1.get("weaponDamage"))
+                patronDamage = ceil(gun_1.get("patronDamage"))
+                criticalDamagePower = ceil(gun_1.get("criticalDamagePower"))
+                criticalDamageProbability = ceil(gun_1.get("criticalDamageProbability"))
+                distanceModifier = gun_1.get("distanceModifier")
+                if type(distanceModifier) == list and weaponType == "🔫 огнестрельное":
+                    if fight['round_num'] < len(distanceModifier):
+                        distanceModifier = distanceModifier[fight['round_num']]
                     else:
-                            distanceModifier = 0
-                    hero = await Db.get_hero(fight.get('hero_1').get('user_ref'))
-                    if hero["equipped"]["patrons"].get('_id'):
-                        patrons = await Db.get_player_equipments(fight.get('hero_1').get("user_ref"), equipment_id = is_equipped_hero_1.get('patrons').get('_id'))
-                        patrons = patrons[0]
-                        patrons["count"] -= 1
-                        if patrons["count"] <= 0:
-                            
-                            hero["equipped"]["patrons"] = {}
-                            await Db.update_hero(hero["_id"], hero)
-                            await Db.delete_player_equipments(is_equipped_hero_1.get('patrons').get('_id'))
-                        else:
-                            patrons.pop("equipments")
-                            await Db.update_player_equipments(patrons.get('_id'), patrons)
-                    else:
-                        if hero['money'] > 0:
-                            hero["money"] -= 1
-                            await Db.update_hero(hero["_id"], hero)
-                        else:
-                            can_shoot = False    
-                    
+                        distanceModifier = distanceModifier[len(distanceModifier) - 1]
                 else:
-                    weaponDamage = 0
-                    patronDamage = 0
-                    distanceModifier = 0    
+                        distanceModifier = 0
+                hero = await Db.get_hero(fight.get('hero_1').get('user_ref'))
+                if hero["equipped"]["patrons"]:
+                    patrons = await Db.get_player_equipments(hero_1_user_ref, equipment_id = is_equipped_hero_1.get('patrons'))
+                    patrons = patrons[0]
+                    patrons["count"] -= 1
+                    if patrons["count"] <= 0:
+                        
+                        hero["equipped"]["patrons"] = {}
+                        await Db.update_hero(hero["_id"], hero)
+                        await Db.delete_player_equipments(is_equipped_hero_1.get('patrons'))
+                    else:
+                        patrons.pop("equipments")
+                        await Db.update_player_equipments(patrons, patrons)
+                else:
+                    if hero['money'] > 0:
+                        hero["money"] -= 1
+                        await Db.update_hero(hero["_id"], hero)
+                    else:
+                        can_shoot = False    
                     
             else:
                 weaponDamage = 0
@@ -450,6 +450,7 @@ class Db:
             
             
         meters = fight.get('meters')
+        
         is_equipped_hero_2 = fight.get('hero_2').get('equipped')
         hero_2_accuracy = fight.get('hero_2').get('patterns').get('accuracy')
         hero_2_luck = fight.get('hero_2').get('patterns').get('luck')
@@ -460,28 +461,22 @@ class Db:
         hero_2_criticalDamagePower = 0
         hero_2_criticalDamageProbability = 0
         if is_equipped_hero_2:
-            if is_equipped_hero_2.get('gun_1'):
-                if is_equipped_hero_2.get('gun_1').get('_id'):
-                    
-                    hero_2_gun_1 = await Db.get_hero_equipped(is_equipped_hero_2.get('gun_1').get('_id'))
-                    hero_2_gun_1.update(is_equipped_hero_2.get('gun_1'))
-                    hero_2_weaponType = hero_2_gun_1.get("type")
-                    hero_2_weaponDamage = ceil(hero_2_gun_1.get("weaponDamage"))
-                    hero_2_patronDamage = ceil(hero_2_gun_1.get("patronDamage"))
-                    hero_2_criticalDamagePower = ceil(hero_2_gun_1.get("criticalDamagePower"))
-                    hero_2_criticalDamageProbability = ceil(hero_2_gun_1.get("criticalDamageProbability"))
-                    hero_2_distanceModifier = hero_2_gun_1.get("distanceModifier")
-                    if type(hero_2_distanceModifier) == list and hero_2_weaponType == "🔫 огнестрельное":
-                        if fight['round_num'] < len(hero_2_distanceModifier):
-                            hero_2_distanceModifier = hero_2_distanceModifier[fight['round_num']]
-                        else:
-                            hero_2_distanceModifier = hero_2_distanceModifier[len(hero_2_distanceModifier) - 1]
+            if is_equipped_hero_2.get('gun_1') != None:
+                hero_2_gun_1 = await Db.get_hero_equipped(is_equipped_hero_2.get('gun_1').get("_id"))
+                hero_2_gun_1.update(is_equipped_hero_2.get('gun_1'))
+                hero_2_weaponType = hero_2_gun_1.get("type")
+                hero_2_weaponDamage = ceil(hero_2_gun_1.get("weaponDamage"))
+                hero_2_patronDamage = ceil(hero_2_gun_1.get("patronDamage"))
+                hero_2_criticalDamagePower = ceil(hero_2_gun_1.get("criticalDamagePower"))
+                hero_2_criticalDamageProbability = ceil(hero_2_gun_1.get("criticalDamageProbability"))
+                hero_2_distanceModifier = hero_2_gun_1.get("distanceModifier")
+                if type(hero_2_distanceModifier) == list and hero_2_weaponType == "🔫 огнестрельное":
+                    if fight['round_num'] < len(hero_2_distanceModifier):
+                        hero_2_distanceModifier = hero_2_distanceModifier[fight['round_num']]
                     else:
-                            hero_2_distanceModifier = 0
+                        hero_2_distanceModifier = hero_2_distanceModifier[len(hero_2_distanceModifier) - 1]
                 else:
-                    hero_2_weaponDamage = 0
-                    hero_2_patronDamage = 0
-                    hero_2_distanceModifier = 0    
+                        hero_2_distanceModifier = 0
                     
             else:
                 hero_2_weaponDamage = 0
@@ -497,15 +492,15 @@ class Db:
         
         
         if is_equipped_hero_1:
-            if is_equipped_hero_1["armor"].get("_id"):
-                hero_1_armor = await Db.get_hero_equipped(is_equipped_hero_1["armor"].get("_id"))
-                hero_1_protection_armor = hero_1_armor.get('armor')
+            if is_equipped_hero_1["armor"] != None:
+                hero_1_armor = await Db.get_player_equipments(hero_1_user_ref, equipment_id = is_equipped_hero_1.get('armor'))
+                hero_1_protection_armor = hero_1_armor[0]["equipments"].get('armor')
                 
             else:
                 hero_1_protection_armor = 0
-            if is_equipped_hero_1["helmet"].get("_id") and hero_2_weaponType == "🔫 огнестрельное":
-                hero_1_helmet = await Db.get_hero_equipped(is_equipped_hero_1["armor"])
-                hero_1_protection_helmet = hero_1_helmet.get('armor')
+            if is_equipped_hero_1["helmet"] != None and hero_2_weaponType == "🔫 огнестрельное":
+                hero_1_helmet = await Db.get_player_equipments(hero_1_user_ref, equipment_id = is_equipped_hero_1.get('armor'))
+                hero_1_protection_helmet = hero_1_helmet[0]["equipments"].get('armor')
             else:
                 hero_1_protection_helmet = 0
         else:
@@ -522,7 +517,7 @@ class Db:
                 
             else:
                 hero_2_protection_armor = 0
-            if is_equipped_hero_2["helmet"] != "" and weaponType == "🔫 огнестрельное":
+            if is_equipped_hero_2["helmet"] != None and weaponType == "🔫 огнестрельное":
                 hero_2_helmet = await Db.get_hero_equipped(is_equipped_hero_2["helmet"])
                 hero_2_protection_helmet = hero_2_helmet.get('armor')
             else:
@@ -836,7 +831,7 @@ class Db:
                     msg = f"У вас новый уровень {hero['level']}"
 
         
-        await Collection.hero.update_one({'_id': hero_id},
+        await Collection.heroes.update_one({'_id': hero_id},
         {'$set': hero})
         
         if update_location:
@@ -846,11 +841,46 @@ class Db:
         
     @staticmethod
     async def update_hero_hp():
-        heroes = await Collection.hero.find({}).to_list(None)
+        heroes = await Collection.heroes.find({}).to_list(None)
         for hero in heroes:
             if hero["hp_free"] < hero["hp"]:
                 hero["hp_free"] += 1
                 await Db.update_hero(hero['_id'], hero)
+              
+              
+    @staticmethod
+    async def get_equipments_from_equipped(equipment_id):
+        pipeline = [
+            {
+                '$lookup': {
+                    'from': 'equipments',
+                    'localField': 'equipment_id',
+                    'foreignField': '_id',
+                    'as': 'equipments'
+                }
+            },
+            {
+                '$unwind': {
+                    'path': '$equipments',
+                    'preserveNullAndEmptyArrays': True
+                }
+            },
+            {
+                '$match': {
+                    'hero_id': bson.ObjectId(hero_id)
+                }
+            }
+        ]
+        
+        if equipment_id:
+            pipeline[2]['$match']['_id'] = bson.ObjectId(equipment_id)
+        
+        if equipment_type:
+            pipeline[2]['$match']['equipments.type'] = equipment_type
+            
+
+        equipments = await Collection.playerequipments.aggregate(pipeline).to_list(None)
+        return equipments
 
     
     @staticmethod

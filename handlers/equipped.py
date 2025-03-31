@@ -49,7 +49,6 @@ async def handler_hero_equipped(message: Message, state: FSMContext, is_edit = F
         count = await Db.get_player_equipments(hero['_id'], gun_type)
         equipment_count[dict_equipment_types[gun_type]] = len(count)
         
-    
     gun_1_text = f'({equipment_count["gun_1"]})'
     gun_2_text = f'({equipment_count["gun_1"]})'
     patrons_text = f'({equipment_count["patrons"]})'
@@ -146,11 +145,10 @@ async def handler_hero_equipped_data_callback(callback: CallbackQuery, state: FS
         change_page_button.append(InlineKeyboardButton(text='◀️', callback_data=f'equipped:{equipped_type}:{page - 1}'))
     if page < max_page:
         change_page_button.append(InlineKeyboardButton(text='▶️', callback_data=f'equipped:{equipped_type}:{page + 1}'))
-    
-    
+
     for equipment in hero_equipments[current_idx:max_page_idx]:
-        if len(hero.get('equipped').get(equipped_type).keys()) > 0:
-            if str(equipment['_id']) == str(hero.get('equipped').get(equipped_type).get("_id")):
+        if hero.get('equipped').get(equipped_type) != None:
+            if str(equipment['_id']) == str(hero.get('equipped').get(equipped_type)):
                 is_equipped = '✅'
                 if equipment["equipments"].get("type") == "☄️ патроны":
                     kb.append([InlineKeyboardButton(text=f'{is_equipped} {equipment["equipments"].get("name")} ({equipment.get("count")})', callback_data=f'get_equipped:{str(equipment.get("_id"))}:{equipped_type}:0')])
@@ -159,7 +157,7 @@ async def handler_hero_equipped_data_callback(callback: CallbackQuery, state: FS
                 amount += 1
                 continue
                 
-        if str(equipment['_id']) == str(hero.get('equipped').get("gun_1").get("_id")) or str(equipment['_id']) == str(hero.get('equipped').get("gun_2").get("_id")):
+        if str(equipment['_id']) == str(hero.get('equipped').get("gun_1")) or str(equipment['_id']) == str(hero.get('equipped').get("gun_2")):
             continue
 
         is_equipped = '❌'
@@ -195,7 +193,7 @@ async def handler_set_equipped(callback: CallbackQuery, state: FSMContext):
     equipped_id = callback.data.split(':')[-1]
     equipped_type = callback.data.split(':')[-2]
     hero = await Db.get_hero_by_telegram_id(telegram_id=callback.from_user.id)
-    hero['equipped'][equipped_type]['_id'] = equipped_id
+    hero['equipped'][equipped_type] = bson.ObjectId(equipped_id)
     await Db.update_hero(hero['_id'], hero)
     
     callback_data = f"get_equipped:{equipped_id}:{equipped_type}:0"
@@ -219,7 +217,7 @@ async def handler_unset_equipped(callback: CallbackQuery, state: FSMContext):
     equipped_id = callback.data.split(':')[-1]
     equipped_type = callback.data.split(':')[-2]
     hero = await Db.get_hero_by_telegram_id(telegram_id=callback.from_user.id)
-    if str(hero['equipped'][equipped_type].get('_id')) == str(equipped_id):
+    if str(hero['equipped'][equipped_type]) == str(equipped_id):
         hero['equipped'][equipped_type] = {}
         await Db.update_hero(hero['_id'], hero)
     
@@ -247,15 +245,15 @@ async def handler_get_equipped(callback: CallbackQuery, state: FSMContext, callb
     
     text = f"<b>{equipment['equipments']['name']}\n\nТребования:\nУровень - 🔷 {equipment['equipments']['level']}"
     
-    if equipment['equipments']['strenght'] > 0:
+    if equipment['equipments']['strenght'] != None:
         text += "\n🏋️Сила - " + str(equipment['equipments']['strenght'])
-    if equipment['equipments']['endurance'] > 0:
+    if equipment['equipments']['endurance'] != None:
         text += "\n🏃Выносливость - " + str(equipment['equipments']['endurance'])
-    if equipment['equipments']['dexterity'] > 0:
+    if equipment['equipments']['dexterity'] != None:
         text += "\n🤸Ловкость - " + str(equipment['equipments']['dexterity'])
-    if equipment['equipments']['accuracy'] > 0:
+    if equipment['equipments']['accuracy'] != None:
         text += "\n🤺Меткость - " + str(equipment['equipments']['accuracy'])
-    if equipment['equipments']['luck'] > 0:
+    if equipment['equipments']['luck'] != None:
         text += "\n🏌️Удача - " + str(equipment['equipments']['luck'])
         
     text += "\n\nХарактеристики:"

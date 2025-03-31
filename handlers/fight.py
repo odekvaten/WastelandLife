@@ -103,8 +103,9 @@ async def handler_escape(message: Message, state: FSMContext):
          
 
     for equipment in hero['equipped'].keys():
-        equipment_id = hero['equipped'][equipment].get("_id")
-        if equipment_id:
+        equipment_id = hero['equipped'][equipment]
+        if equipment_id != None:
+            equipment_id = equipment_id["_id"]
             current_equipment = await Db.get_player_equipments(hero["_id"], equipment_id = equipment_id)
             if len(current_equipment) > 0:
                 current_equipment = current_equipment[0]
@@ -241,8 +242,7 @@ async def handler_fight_attack(message: Message, state: FSMContext):
             
             await Db.update_location(message.chat.id, nearest_locations[0]['name'])
             for equipment in hero['equipped'].keys():
-                equipment_id = hero['equipped'][equipment].get("_id")
-                if equipment_id:
+                if equipment_id != None:
                     current_equipment = await Db.get_player_equipments(result['hero_1']['user_ref'], equipment_id = equipment_id)
                     if len(current_equipment) > 0:
                         current_equipment = current_equipment[0]
@@ -267,32 +267,49 @@ async def handler_fight_attack(message: Message, state: FSMContext):
             text_drops = ""
 
             if result['hero_1']["lvl"] - result['hero_2']["lvl"] <= 3:
-                
                 if result['hero_2'].get('experience'):
                     experience = result['hero_2'].get('experience')
                     money = result['hero_2'].get('money')
                     hero['experience'] += experience
                     hero['money'] += money
-            
-                if result['hero_2'].get('drop'):
-                    drops = result['hero_2'].get('drop')
-                    if len(drops.keys()) > 0:
-                        for drop in drops.keys():
-                            if hero["resources"].get(drop):
-                                hero["resources"][drop] += drops[drop]
-                            else:
-                                hero["resources"][drop] = drops[drop]
-                        resources = await Db.get_resources(list(drops.keys())) 
-                        for resource in resources:
-                            text_drops += "\n" + resource["name"]
                     
-                    hero['experience'] += experience
+            if result['hero_2'].get('drop_resources'):
+                drops = []
+                drop_resources = result['hero_2'].get('drop_resources')
+                if len(drop_resources) > 0:
+                    for drop in drop_resources:
+                        resource_ref = str(drop["resource_ref"])
+                        if hero["resources"].get(resource_ref):
+                            hero["resources"][resource_ref] += drop["count"]
+                        else:
+                            hero["resources"][resource_ref] = drop["count"]
+                        drops.append(resource_ref)
+                    resources = await Db.get_resources(drops) 
+                    for resource in resources:
+                        text_drops += "\n" + resource["name"]
+            
+            if result['hero_2'].get('drop_equipments'):
+                drops = []
+                drop_equipments = result['hero_2'].get('drop_equipments')
+                if len(drop_equipments) > 0:
+                    for drop in drop_equipments:
+                        equipment_ref = str(drop["equipment_ref"])
+                        if hero["resources"].get(equipment_ref):
+                            hero["equipments"][equipment_ref] += drop["count"]
+                        else:
+                            hero["equipments"][equipment_ref] = drop["count"]
+                        drops.append(equipment_ref)
+                    resources = await Db.get_equipments(drops) 
+                    for equipment in equipments:
+                        text_drops += "\n" + equipment["name"]
+                    
+
                     
             hero['hp_free'] = hero_1_hp_free    
             msg = await Db.update_hero(result['hero_1']['user_ref'], hero)
             text =  f'🥇<b>Победа</b> над противником {hero_2_name} 🔸2\n\nПолучено:'   
             if experience > 0:
-                text += "\n💹 Опыт - {experience}"
+                text += f"\n💹 Опыт - {experience}"
                 
             if money > 0:
                 text += f"\n☄️ Патроны - {money}"

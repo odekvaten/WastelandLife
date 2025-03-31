@@ -47,7 +47,7 @@ class Model:
             }
             
     
-    class Hero:
+    class Heroes:
         def __init__(self, profile_id, nickname, gender, energy, state, level, speed, location_ref, experience, fame, money, hp, hp_free, patterns, resources, equipped, techniques, faction, craft, background, action_count, karma, locations_visited):
             self.profile_id = profile_id
             self.nickname = nickname
@@ -300,7 +300,7 @@ class Model:
             
             
     class Mobs:
-        def __init__(self, name, about, location_ref, weight, level, hp, patterns, armor, helmet, gun, pouch, experience, money, reception, image, drop):
+        def __init__(self, name, about, location_ref, weight, level, hp, patterns, armor, helmet, gun, pouch, experience, money, reception, image, drop_equipments, drop_resources):
             self.name = name
             self.about = about
             self.location_ref = location_ref
@@ -316,7 +316,8 @@ class Model:
             self.money = money
             self.reception = reception
             self.image = image
-            self.drop = drop
+            self.drop_equipments = drop_equipments
+            self.drop_resources = drop_resources
 
 
         def to_dict(self):
@@ -336,7 +337,8 @@ class Model:
                 "money" : self.money,
                 "reception" : self.reception,
                 "image" : self.image,
-                "drop" : self.drop
+                "drop_equipments" : self.drop_equipments,
+                "drop_resources" : self.drop_resources
             }
             
     class Routes:
@@ -400,4 +402,34 @@ class Model:
                 "armor" : self.armor,
                 "helmet" : self.helmet,
                 "speed_transfer" : self.speed_transfer
+            }
+            
+    class Npc_Sell_Resources:
+        def __init__(self, npc_ref, resource_ref, count, price):
+            self.npc_ref = npc_ref
+            self.resource_ref = resource_ref
+            self.count = count
+            self.price = price
+            
+        def to_dict(self):
+            return {
+                "npc_ref" : self.npc_ref,
+                "resource_ref" : self.resource_ref,
+                "count" : self.count,
+                "price" : self.price
+            }
+            
+    class Npc_Sell_Equipments:
+        def __init__(self, npc_ref, equipment_ref, count, price):
+            self.npc_ref = npc_ref
+            self.resource_ref = resource_ref
+            self.count = count
+            self.price = price
+            
+        def to_dict(self):
+            return {
+                "npc_ref" : self.npc_ref,
+                "resource_ref" : self.resource_ref,
+                "count" : self.count,
+                "price" : self.price
             }

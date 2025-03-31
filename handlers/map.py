@@ -51,11 +51,8 @@ async def transfer_to_location(message: Message, state: FSMContext):
     if hero['level'] < location['min_level']:
         await message.answer(f'Переход в локацию возможен после достижения <b>{location["min_level"]}</b> уровня.', parse_mode = "html")
         return
-    elif str(location['request_quests']) != "":
-        if type(location['request_quests']) is str:
+    elif location['request_quests'] != None:
             location['request_quests'] = [location['request_quests']]
-        
-        if len(location['request_quests']) > 0:
             taked_quests = await Db.get_taked_quest(location['request_quests'], "quest_id", {"hero_id" : hero["_id"]})
             if len(taked_quests) <= len(location['request_quests']):
                 await message.answer(f'Переход в локацию возможен после выполнения обязательных квестов.', parse_mode = "html")
