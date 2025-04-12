@@ -56,6 +56,7 @@ async def handler_fight(message: Message, state: FSMContext):
     await message.answer(f'Между вами {fight.get("meters")} метров', reply_markup=keyboard)
     await message.answer(f'Выберите куда атаковать', reply_markup=keyboard)
 
+
 @router.message(F.text == '↖️Атаковать левее')
 @router.message(F.text == '↗️Атаковать правее')
 @router.message(F.text == '⬆️Атаковать по центру')
@@ -94,6 +95,7 @@ async def handler_escape(message: Message, state: FSMContext):
         return
         
     hero = await Db.get_hero_by_telegram_id(message.chat.id)
+    hero_id = hero["_id"]
     kb = [
             [KeyboardButton(text='⬅️Вернуться')]
         ]
@@ -101,26 +103,30 @@ async def handler_escape(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(f'💔 <b>Победил противник</b>', reply_markup=keyboard, parse_mode = 'html')
          
-
     for equipment in hero['equipped'].keys():
         equipment_id = hero['equipped'][equipment]
         if equipment_id != None:
-            current_equipment = await Db.get_player_equipments(hero["_id"], equipment_id = equipment_id)
+            current_equipment = await Db.get_player_equipments(hero_id, equipment_id = equipment_id)
             if len(current_equipment) > 0:
                 current_equipment = current_equipment[0]
                 if current_equipment["equipments"].get("type") != "☄️ патроны":
                     current_equipment.pop("equipments")
                     current_equipment['solidity_free'] -= 1
                     if current_equipment['solidity_free'] <= 0:
-                        hero['equipped'][equipment] = {}
-                        await Db.delete_player_equipments(equipment_id)
+                        current_equipment['max_solidity'] -= 1
+                        if current_equipment['max_solidity'] <= 0:
+                            hero['equipped'][equipment] = None
+                            await Db.delete_player_equipments(equipment_id)
+                        else:
+                            current_equipment['solidity_free'] = current_equipment['max_solidity']
+                            await Db.update_player_equipments(current_equipment['_id'], current_equipment)
                     else:
                         await Db.update_player_equipments(current_equipment['_id'], current_equipment)
             
             fight = await Db.find_action(fight.get('_id'), message.chat.id, "", "", only_fight = True)
             hero_1_hp_free = fight['hero_1']['hp_free']
-            hero['hp_free'] = hero_1_hp_free    
-        
+            hero['hp_free'] = hero_1_hp_free
+            await Db.update_hero(hero_id, hero)
         
         
         
@@ -151,7 +157,7 @@ async def handler_fight_attack(message: Message, state: FSMContext):
     print(result)
 
     await state.update_data(fight=result)
-
+    
     round_result = result.get('rounds')[fight.get('round_num') - 1]
 
     name_type_attacks = {'left' : 'влево', 'right' : 'вправо', 'center' : 'прямо'}
@@ -250,8 +256,13 @@ async def handler_fight_attack(message: Message, state: FSMContext):
                             current_equipment.pop("equipments")
                             current_equipment['solidity_free'] -= 1
                             if current_equipment['solidity_free'] <= 0:
-                                hero['equipped'][equipment] = {}
-                                await Db.delete_player_equipments(equipment_id)
+                                current_equipment['max_solidity'] -= 1
+                                if current_equipment['max_solidity'] <= 0:
+                                    hero['equipped'][equipment] = None
+                                    await Db.delete_player_equipments(equipment_id)
+                                else:
+                                    current_equipment['solidity_free'] = current_equipment['max_solidity']
+                                    await Db.update_player_equipments(current_equipment['_id'], current_equipment)
                             else:
                                 await Db.update_player_equipments(current_equipment['_id'], current_equipment)
                                 
@@ -315,7 +326,6 @@ async def handler_fight_attack(message: Message, state: FSMContext):
                 text += f"\n☄️ Патроны - {money}"
                 
             text += text_drops
-            
             
             await message.answer(text, reply_markup=keyboard, parse_mode = 'html')
             

@@ -398,7 +398,7 @@ class Db:
                 gun_equipment = await Db.get_player_equipments(hero_1_user_ref, equipment_id = is_equipped_hero_1.get('gun_1'))
                 if len(gun_equipment) > 0:
                     gun_equipment = gun_equipment[0]
-
+                
                 gun_1_id = gun_equipment['equipment_id']
                 gun_1 = gun_equipment["equipments"]
                 #gun_1.update(is_equipped_hero_1.get('gun_1'))
@@ -846,7 +846,10 @@ class Db:
             if hero["hp_free"] < hero["hp"]:
                 hero["hp_free"] += 1
                 await Db.update_hero(hero['_id'], hero)
-              
+                
+            if hero["hp_free"] > hero["hp"]:
+              hero["hp_free"] = hero["hp"]
+              await Db.update_hero(hero['_id'], hero)
               
     @staticmethod
     async def get_equipments_from_equipped(equipment_id):

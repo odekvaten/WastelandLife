@@ -153,7 +153,7 @@ async def handler_hero_equipped_data_callback(callback: CallbackQuery, state: FS
                 if equipment["equipments"].get("type") == "☄️ патроны":
                     kb.append([InlineKeyboardButton(text=f'{is_equipped} {equipment["equipments"].get("name")} ({equipment.get("count")})', callback_data=f'get_equipped:{str(equipment.get("_id"))}:{equipped_type}:0')])
                 else:
-                    kb.append([InlineKeyboardButton(text=f'{is_equipped} {equipment["equipments"].get("name")} ({equipment.get("solidity_free")}/{equipment["equipments"].get("solidity")})', callback_data=f'get_equipped:{str(equipment.get("_id"))}:{equipped_type}:0')])
+                    kb.append([InlineKeyboardButton(text=f'{is_equipped} {equipment["equipments"].get("name")} ({equipment.get("solidity_free")}/{equipment.get("max_solidity")})', callback_data=f'get_equipped:{str(equipment.get("_id"))}:{equipped_type}:0')])
                 amount += 1
                 continue
                 
@@ -164,7 +164,7 @@ async def handler_hero_equipped_data_callback(callback: CallbackQuery, state: FS
         if equipment["equipments"].get("type") == "☄️ патроны":
             kb.append([InlineKeyboardButton(text=f'{is_equipped} {equipment["equipments"].get("name")} ({equipment.get("count")})', callback_data=f'get_equipped:{str(equipment.get("_id"))}:{equipped_type}:1')])
         else:
-            kb.append([InlineKeyboardButton(text=f'{is_equipped} {equipment["equipments"].get("name")} ({equipment.get("solidity_free")}/{equipment["equipments"].get("solidity")})', callback_data=f'get_equipped:{str(equipment.get("_id"))}:{equipped_type}:1')])
+            kb.append([InlineKeyboardButton(text=f'{is_equipped} {equipment["equipments"].get("name")} ({equipment.get("solidity_free")}/{equipment.get("max_solidity")})', callback_data=f'get_equipped:{str(equipment.get("_id"))}:{equipped_type}:1')])
                 
         amount += 1
     
@@ -286,7 +286,7 @@ async def handler_get_equipped(callback: CallbackQuery, state: FSMContext, callb
 
 
     if equipment['equipments']['type'] != "💉 стимулятор" and equipment['equipments']['type'] != "☄️ патроны":
-        text += f"\n\n⚙️ {equipment['solidity_free']}/{equipment['equipments']['solidity']}"
+        text += f"\n\n⚙️ {equipment['solidity_free']}/{equipment['max_solidity']}"
         
     if equipment['equipments']['type'] == "☄️ патроны":
         text += f"\n\nКоличество: {equipment['count']}"
