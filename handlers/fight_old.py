@@ -10,7 +10,8 @@ from db.db_requests import Db
 from aiogram.utils.media_group import MediaGroupBuilder
 from aiogram.fsm.storage.memory import MemoryStorage
 import os
-from aiogram.types import (ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton)
+from aiogram.types import (ReplyKeyboardMarkup, KeyboardButton,
+                           InlineKeyboardMarkup, InlineKeyboardButton)
 
 router = Router()
 
@@ -30,12 +31,14 @@ async def handler_fight(message: Message, state: FSMContext):
     if not is_available_fight:
         await message.answer('Недостаточно hp. Попробуйте позже...')
         return
-        
-    loader = await bot.send_message(message.chat.id, 'Поиск противника...', reply_markup = ReplyKeyboardRemove())
+
+    loader = await message.answer('Поиск противника...')
     fight = await Db.find_fight(telegram_id=hero_telegram_id)
     await state.update_data(fight=fight)
     await bot.delete_message(chat_id=loader.chat.id, message_id=loader.message_id)
     kb = [
+
+
         [KeyboardButton(text='↖️Атаковать левее'),
          KeyboardButton(text='↗️Атаковать правее')],
         [KeyboardButton(text='⬆️Атаковать по центру')],

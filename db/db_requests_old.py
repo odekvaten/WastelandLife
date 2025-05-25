@@ -8,7 +8,6 @@ from db.db_start import Collection
 from db.models import Model
 import aiohttp
 import bson
-from bot import scheduler
 
 class Db:
     @staticmethod
@@ -277,17 +276,32 @@ class Db:
 
         is_human_fight = False
         finding_fights_try = 5
-        waiting_fights = await Collection.fight.find({'status': 'waiting', 'hero_1.lvl': 1, 'hero_1._id':{'$nin':[hero.get('_id')]}}).to_list(None)
-        
-
-        #scheduler.add_job(find_fight, trigger='interval', seconds=60, kwargs={'telegram_id': telegram_id})
-
-        
+        waiting_fights = await Collection.fight.find({'status': 'waiting', 'lvl': '1'}).to_list(None)
 
         if not waiting_fights:
-            new_fight = {
-                'status': 'waiting',
-                    'type': None,
+            while finding_fights_try > 0 and not is_human_fight:
+                print('finding fight')
+                await asyncio.sleep(1)
+                waiting_fights = await Collection.fight.find({'status': 'waiting', 'lvl': '1'}).to_list(None)
+                finding_fights_try -= 1
+                
+            if not is_human_fight:
+                all_mobs = await Db.get_mobs()
+                hero_location = hero.get('location_ref')
+                
+                mobs = []
+                for i in all_mobs:
+                    if str(i['location_ref']) == str(hero_location):
+                        mobs.append(i)
+                
+                if len(mobs) > 0:        
+                    mob = random.choice(mobs)
+                else:
+                    mob = random.choice(all_mobs)
+
+                bot_fight = {
+                    'status': 'fight',
+                    'type': 'bot',
                     'hero_1': {
                         'is_bot': False,
                         'user_ref': hero.get('_id'),
@@ -303,32 +317,7 @@ class Db:
                         'dodge_count' : 0,
                         'crytical_damage_count' : 0
                     },
-                    'hero_2': None,
-                    'round_num': 1,
-                    'meters': 7,
-                    'rounds': []
-                }
-            waiting_fight = await Collection.fight.insert_one(new_fight)
-            inserted_fight_id = waiting_fight.inserted_id
-            while finding_fights_try > 0:
-                print('finding fight')
-                await asyncio.sleep(1)
-                waiting_fight = await Collection.fight.find_one({"_id" : inserted_fight_id})
-                if waiting_fight["hero_2"] is not None:
-                    return waiting_fight
-                finding_fights_try -= 1
-            
-            mobs = await Db.get_mobs(location_ref = hero.get('location_ref'))
-                
-            if len(mobs) > 0:        
-                mob = random.choice(mobs)
-            else:
-                mobs = await Db.get_mobs()
-                mob = random.choice(mobs)
-                
-            waiting_fight["status"] = "fight"
-            waiting_fight["type"] = "bot"
-            waiting_fight["hero_2"] = {
+                    'hero_2': {
                         'is_bot': True,
                         'user_ref': mob["_id"],
                         'name': mob["name"],
@@ -351,28 +340,15 @@ class Db:
                         'image' : mob["image"],
                         'drop_equipments' : mob['drop_equipments'],
                         'drop_resources' : mob['drop_resources']
-                    }
-        else:
-            waiting_fight["status"] = "fight"
-            waiting_fight["type"] = "heroes"
-            waiting_fight["hero_2"] = {
-                        'is_bot': False,
-                        'user_ref': hero.get('_id'),
-                        'user_telegram_id': hero.get('telegram_id'),
-                        'name': hero.get('nickname'),
-                        'lvl': hero.get('level'),
-                        'hp' : hero.get('hp'),
-                        'hp_free': hero.get('hp_free'),
-                        'patterns': hero.get('patterns'),
-                        'equipped': hero.get('equipped'),
-                        'hits' : 0,
-                        'misses' : 0,
-                        'dodge_count' : 0,
-                        'crytical_damage_count' : 0
-                    }
-                    
-        await Collection.fight.update_one({"_id" : inserted_fight_id}, {"$set" : waiting_fight})
-        return waiting_fight
+                    },
+                    'round_num': 1,
+                    'meters': 7,
+                    'rounds': []
+                }
+                await Collection.fight.insert_one(bot_fight)
+                return bot_fight
+
+        return waiting_fights[0]
 
         # pipeline = [
         #     {
@@ -699,29 +675,18 @@ class Db:
 
 
     @staticmethod
-    async def get_mobs(mob_id = None, location_ref = None):
-        mob_filter = {}
-        if mob_id is not None:
-            if type(mob_id) != list:
-                mob_id = [bson.ObjectId(mob_id)]
-            else:
-                mob_id = [bson.ObjectId(i) for i in mob_id]
-            
-            mob_filter["_id"] = {"$in": mob_id}
-            
-        if location_ref is not None:
-            if type(location_ref) != list:
-                location_ref = [bson.ObjectId(location_ref)]
-            else:
-                location_ref = [bson.ObjectId(i) for i in location_ref]
-            
-            mob_filter["location_ref"] = {"$in": location_ref}
-            
-            
-        mobs = await Collection.mobs.find(mob_filter).to_list(None)
-        return mobs
+    async def get_mobs(mob_id = None):
+    
+        if mob_id is None:
+            mobs = await Collection.mobs.find({}).to_list(None)
+            return mobs
         
-       
+        if type(mob_id) != list:
+            mob_id = [bson.ObjectId(mob_id)]
+        else:
+            mob_id = [bson.ObjectId(i) for i in mob_id]
+            
+        mobs = await Collection.mobs.find({"_id": {"$in": mob_id}}).to_list(None)
 
         return mobs
         

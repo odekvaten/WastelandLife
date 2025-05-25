@@ -10,7 +10,7 @@ import os
 
 bot = Bot(token=BOT_TOKEN, default= DefaultBotProperties(parse_mode='Markdown'))
 dp = Dispatcher()
-scheduler = AsyncIOScheduler()
+scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
 
 
 
